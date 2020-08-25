@@ -1,0 +1,127 @@
+#
+# @author LazyBear
+# List of all my indicators: https://www.tradingview.com/v/4IneGo8h/
+#
+# study(" [LazyBear]", shorttitle="WWV_LB")
+declare lower;
+declare zerobase;
+
+# trendDetectionLength=input(2)
+input trendDetectionLength = 3;
+
+# mov = close>close[1] ? 1 : close<close[1] ? -1 : 0
+def mov = If(close > close[1], 1, If(close < close[1], -1, 0));
+
+# trend= (mov != 0) and (mov != mov[1]) ? mov : nz(trend[1])
+# might cause problems not using the nan if statement...
+def trend = If((mov != 0) and (mov != mov[1]), mov, (trend[1])) ;
+# isTrending = rising(close, trendDetectionLength) or falling(close, trendDetectionLength) //abs(close-close[1]) >= dif
+def isTrending = IsAscending(close, trendDetectionLength) or IsDescending(close, trendDetectionLength);
+
+# wave=(trend != nz(wave[1])) and isTrending ? trend : nz(wave[1])
+# might be a problem not using the nan function here
+def wave = If((trend != (wave[1])) and isTrending, trend , (wave[1]) );
+
+# vol=wave==wave[1] ? (nz(vol[1])+volume) : volume
+# might be a problem not using the nan function here
+def vol = If(wave == wave[1] , ((vol[1]) + volume) , volume ) ;
+
+# up=wave == 1 ? vol : 0
+plot up = If(wave == 1 , vol , 0 );
+
+# dn=showDistributionBelowZero ? (wave == 1 ? 0 : wave == -1 ? -vol : vol) : (wave == 1 ? 0 : vol)
+# plot dn = If(wave == 1, 0, If(wave == -1, -vol, vol));
+plot dn = If(wave == 1, 0, If(wave == -1, vol, vol));
+
+# plot(up, style=histogram, color=green, linewidth=3)
+
+# plot(dn, style=histogram, color=red, linewidth=3)
+
+dn.SetDefaultColor(Color.RED);
+up.SetDefaultColor(Color.GREEN);
+dn.SetLineWeight(3);
+up.SetLineWeight(3);
+up.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
+dn.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
+
+# Box Volume Stats
+# Version 1.2
+# Created by: Enigma
+# Created: 05/18/17
+# Modified by: Surya Kiran C ## Included rVolume label and Changed length as input. ## Additionally Pre-Market, 1Hr Volume, AfterHour Volume labels are added. 
+
+#declare on_volume;
+
+input length = 30;
+input ShowDayAvg = no;
+input ShowTodayVolume = no;
+input ShowPercentOfDayAvg = no;
+input UnusualVolumePercent = 200;
+input ShowBarAvg = no;
+input ShowCurrentBar = no;
+
+input PreMktVol = yes;
+input RTH1HrVol = yes;
+input PostMktVol = yes;
+
+
+def VolDayAvg = (fold index = 1 to length + 1  with Avg = 0 do (Avg + volume(period = "DAY")[index])) / length;
+def AvgBars = (fold index2 = 1 to length + 1 with Bar = 0  do (Bar + volume[index2])) / length;
+
+def Today = volume(period =  "DAY");
+def PercentOfDayAvg = Round((Today / VolDayAvg) * 100, 0);
+
+def CurVol = volume;
+
+
+def offset = 1;
+def ADV = Average(volume, length)[offset];
+def rVol = volume / ADV;
+
+# Labels
+
+#if GetAggregationPeriod() >= AggregationPeriod.DAY then 0 else if 1HrRTHVol then 1 else 0,
+
+AddLabel(ShowDayAvg, length + "Day Avg: " + Round(VolDayAvg, 0) + "  ", Color.LIGHT_GRAY);
+AddLabel(ShowTodayVolume, "Today: " + Today + " ", (if PercentOfDayAvg >= UnusualVolumePercent then Color.GREEN else if PercentOfDayAvg >= 100 then Color.ORANGE else Color.LIGHT_GRAY));
+AddLabel(ShowPercentOfDayAvg, PercentOfDayAvg + "%", (if PercentOfDayAvg >= UnusualVolumePercent then Color.GREEN else if PercentOfDayAvg >= 100 then Color.ORANGE else Color.WHITE) );
+AddLabel(ShowBarAvg, "Avg" + length  + "Bars: " + Round(AvgBars, 0) + " ", Color.LIGHT_GRAY);
+AddLabel(ShowCurrentBar, "Cur Bar: " + CurVol + " ", (if CurVol >= AvgBars then Color.GREEN else Color.ORANGE));
+
+#AddLabel(yes, "rVol :" + Round(rVol, 2));
+#AddLabel(yes, "ADV :" + ADV); 
+#AddLabel(yes, asPercent(rVol)); # remove "#" infront of Addlabels to select prefer choice
+#AssignPriceColor(if rVol >= 1 then color.dark_red else if rVol <=.5 then Color.black else color.Gray);
+
+#Pre, 1Hr RTH, AfterHours Volumes. 
+##if GetAggregationPeriod() >= AggregationPeriod.DAY then 0 else if PreMktVol then 1 else 0
+
+input PrestartTime = 0400;
+input PreendTime = 0929;
+
+def PreMkt = SecondsFromTime(PrestartTime) >= 0 and SecondsTillTime(PreendTime) >= 0;
+def PreVolMins = if PreMkt and !PreMkt[1] then volume
+                else if PreMkt then PreVolMins[1] + volume
+                else PreVolMins[1];
+AddLabel(if GetAggregationPeriod() >= AggregationPeriod.DAY then 0 else if PreMktVol then 1 else 0, "PreMktVol = " + PreVolMins + "  ", Color.YELLOW);
+# End Volume PreMarket
+
+input RTH1HrstartTime = 0930;
+input RTH1HrendTime = 1029;
+
+def RTH1Hr = SecondsFromTime(RTH1HrstartTime) >= 0 and SecondsTillTime(RTH1HrendTime) >= 0;
+def RTH1HrMins = if RTH1Hr and !RTH1Hr[1] then volume
+                else if RTH1Hr then RTH1HrMins[1] + volume
+                else RTH1HrMins[1];
+AddLabel(if GetAggregationPeriod() >= AggregationPeriod.DAY then 0 else if RTH1HrVol then 1 else 0, "RTH1HrVol = " + RTH1HrMins + "  ", Color.YELLOW);
+#End Volume RTH First 60 Mins
+
+input PoststartTime = 1600;
+input PostendTime = 1959;
+
+def PostMkt = SecondsFromTime(PoststartTime) >= 0 and SecondsTillTime(PostendTime) >= 0;
+def PostVolMins = if PostMkt and !PostMkt[1] then volume
+                else if PostMkt then PostVolMins[1] + volume
+                else PostVolMins[1];
+AddLabel(if GetAggregationPeriod() >= AggregationPeriod.DAY then 0 else if PostMktVol then 1 else 0, "PostMktVol = " + PostVolMins + "  ", Color.YELLOW);
+# End Volume PostMarket
