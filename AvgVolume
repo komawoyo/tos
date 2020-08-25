@@ -1,0 +1,13 @@
+def avgVol = Round( Average(volume, 3)     , 0  );
+def volup = if volume > avgVol then 1 else -1;
+def voldown = if volume < avgVol then 1 else -1;
+def compvol = round(volume / avgVol * 100,0);
+#def vollabel = if volume > 1000000 then "M" else if volume > 1000 then "K" else " ";
+#def smallvol = if volume > 1000000 then round(volume/1000000) else if volume > 1000 then (volume/1000) else " ";
+
+addlabel (1, concat(Round(volume/1000000,2)+"M", " (" + compvol + "%)")
+, if volup == 1
+then color.green
+else if voldown == 1
+then color.red
+else color.gray);
