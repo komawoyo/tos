@@ -37,8 +37,8 @@ plot dn = If(wave == 1, 0, If(wave == -1, vol, vol));
 
 # plot(dn, style=histogram, color=red, linewidth=3)
 
-dn.SetDefaultColor(Color.RED);
-up.SetDefaultColor(Color.GREEN);
+dn.setDefaultColor(color.red);
+up.setDefaultColor(color.green);
 dn.SetLineWeight(3);
 up.SetLineWeight(3);
 up.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
@@ -52,11 +52,11 @@ dn.SetPaintingStrategy(PaintingStrategy.HISTOGRAM);
 
 #declare on_volume;
 
-input length = 30;
-input ShowDayAvg = no;
-input ShowTodayVolume = no;
-input ShowPercentOfDayAvg = no;
-input UnusualVolumePercent = 200;
+input length = 10;
+input ShowDayAvg = yes;
+input ShowTodayVolume = yes;
+input ShowPercentOfDayAvg = yes;
+input UnusualVolumePercent = 150;
 input ShowBarAvg = no;
 input ShowCurrentBar = no;
 
